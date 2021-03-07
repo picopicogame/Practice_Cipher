@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 class CaesarCipher:
+    """シーザー暗号"""
     def __init__(self, plain_text, key=3):
         self.plain_text = plain_text
         self.key = key
