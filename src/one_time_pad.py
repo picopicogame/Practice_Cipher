@@ -13,62 +13,75 @@ https://qiita.com/magiclib/items/fe2c4b2c4a07e039b905
 
 """
 
-"""自分で作ってみる"""
-# 文字列から16進バイト列へ
-bytes_abcd = "abcd".encode()
-print(bytes_abcd)
-print(bytes_abcd.hex())
 
+class OneTimePad:
+    """使い捨てパッドクラス"""
+    def __init__(self, plain_text: str):
+        self.plain_text = plain_text
+        self.bi_plain_text = self._make_bi_plain_text()
+        self.one_time_pad = self._make_one_time_pad()
+        self._check_input()
 
-bin_str = ""
-# バイト列から取り出すと10進int型
-for bstr in bytes_abcd:
-    temp_str = ""
-    temp_str += str(bin(bstr))
-    # 先頭の0bを除去
-    temp_str = temp_str[2:]
-    bin_str += temp_str
+    def _make_bi_plain_text(self):
+        bytes_plain = self.plain_text.encode()
 
-print(bin_str)
-print(len(bin_str))
+        bin_str = ""
 
-# 使い捨てパッドを作る
-# 本来は暗号用乱数生成器を使うべきだが、標準ライブラリで代用
-one_time_pad = ""
-for i in range(len(bin_str)):
-    one_time_pad += str(randint(0, 1))
+        # バイト列から取り出すと10進int型
+        for bstr in bytes_plain:
+            temp_str = ""
+            temp_str += str(bin(bstr))
+            # 先頭の0bを除去
+            temp_str = temp_str[2:]
+            bin_str += temp_str
 
-print(one_time_pad)
+        return bin_str
 
-# 2進数へ変換
-bi_one_time_pad = int(one_time_pad, 2)
-bi_str = int(bin_str, 2)
+    def _make_one_time_pad(self):
+        """ 使い捨てパッドを作る
+            本来は暗号用乱数生成器を使うべきだが、標準ライブラリで代用"""
+        otp = ""
+        for i in range(len(self.bi_plain_text)):
+            otp += str(randint(0, 1))
+        return int(otp, 2)
 
-# 使い捨てパッドとxorを取って暗号化
-crypt = bi_one_time_pad ^ bi_str
-# 比較用に結果を並べる
-print(bin(bi_str))
-print(bin(bi_one_time_pad))
-print(bin(crypt))
+    def _check_input(self):
+        if len(self.plain_text) == 0:
+            print("入力エラー。英字小文字a-zを入力してください")
+            exit()
 
-# 復号化
-decrypt = bi_one_time_pad ^ crypt
+        for s in self.plain_text:
+            if 'a' <= s <= 'z':
+                pass
+            else:
+                print("入力エラー。英字小文字a-zを入力してください")
+                exit()
 
-print(decrypt)
-print(bin(decrypt))
-bin_decrypt = bin(decrypt)
-bin_decrypt = bin_decrypt[2:]
+    def encrypt(self):
+        """暗号化する"""
+        # 使い捨てパッドを使って暗号化
+        return int(self.bi_plain_text, 2) ^ self.one_time_pad
 
-decrypt_bytes = bytes()
-str_decrypt = ""
-for i, s in enumerate(bin_decrypt):
-    str_decrypt += s
-    if (i+1) % 7 == 0:
-        temp = hex(int(str_decrypt, 2))
-        temp = temp[2:]
-        decrypt_bytes += bytes.fromhex(temp)
+    def decrypt(self, crypt):
+        """復号化する"""
+        # 使い捨てパッドで復号化
+        decrypt = crypt ^ self.one_time_pad
+
+        # 2進数へ変換
+        bin_decrypt = bin(decrypt)
+        # 先頭の0bを除去
+        bin_decrypt = bin_decrypt[2:]
+
+        decrypt_bytes = bytes()
         str_decrypt = ""
+        # 2進数を8bitごとに分割して16進数に変換
+        for i, s in enumerate(bin_decrypt):
+            str_decrypt += s
+            if (i+1) % 7 == 0:
+                temp = hex(int(str_decrypt, 2)) # 16進数に変換
+                temp = temp[2:]
+                decrypt_bytes += bytes.fromhex(temp)  # バイト型に変換
+                str_decrypt = ""
 
-print(decrypt_bytes.decode())
-
-
+        # bytes型をデコードして文字列に戻す
+        return decrypt_bytes.decode()
